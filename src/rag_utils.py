@@ -29,17 +29,10 @@ def build_prompt(context_chunks: List[dict], question: str) -> str:
     """
     context = "\n---\n".join([chunk['chunk_text'] for chunk in context_chunks])
     prompt = (
-        "You are a financial analyst assistant for CrediTrust. "
-        "Analyze the following customer complaints and provide a comprehensive answer.\n\n"
-        "REQUIREMENTS:\n"
-        "1. Identify the main issues and problems\n"
-        "2. Provide specific examples from the complaints\n"
-        "3. Mention any patterns or recurring themes\n"
-        "4. Give a detailed summary (3-4 sentences minimum)\n"
-        "5. If no relevant information exists, say 'No relevant complaints found'\n\n"
-        f"CUSTOMER COMPLAINTS:\n{context}\n\n"
-        f"ANALYSIS REQUEST: {question}\n\n"
-        "DETAILED RESPONSE:"
+        "Based on the following customer complaints, answer this question:\n\n"
+        f"Question: {question}\n\n"
+        f"Complaints:\n{context}\n\n"
+        "Answer:"
     )
     return prompt
 
@@ -48,6 +41,16 @@ def generate_answer(prompt: str, llm_pipeline) -> str:
     Generate an answer using a Hugging Face text-generation pipeline.
     """
     result = llm_pipeline(prompt, max_new_tokens=256, do_sample=True)
+    
+    # Handle different response formats
     if isinstance(result, list):
-        return result[0]['generated_text'] if 'generated_text' in result[0] else result[0]['text']
-    return result
+        if 'generated_text' in result[0]:
+            full_text = result[0]['generated_text']
+            #  return the full generated text
+            return full_text
+        elif 'text' in result[0]:
+            return result[0]['text']
+        else:
+            return str(result[0])
+    else:
+        return str(result)
